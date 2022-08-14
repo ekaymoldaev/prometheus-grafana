@@ -1,0 +1,39 @@
+import time
+import requests
+import json
+#import random
+#from os import path
+#import yaml
+from prometheus_client.core import GaugeMetricFamily, REGISTRY, CounterMetricFamily
+from prometheus_client import start_http_server
+
+totalRandomNumber = 0
+#функция которая выполняет необходимые действия. Она запускается из Checker(object)
+def Status():
+    url = "https://status.digitalocean.com/api/v2/status.json"
+    response=requests.get(url)
+    req = json.loads(response.text)
+    state = req['status']
+    description = state['description']
+    if description == "All Systems Operational":
+        #return random.randint(1, 999)
+        return 0
+    else:
+        return 1
+# класс необходимый для построения метрики.
+class Checker(object):
+    def __init__(self): # стандартная функция необходимая для класса
+        pass
+    def collect(self): # функция, которая создает метрики.
+        
+        gauge = GaugeMetricFamily("website_status", "A website available", labels=["websiteAvailability"])
+        gauge.add_metric(['status_code'], Status())
+        yield gauge
+
+
+if __name__ == "__main__":
+    start_http_server(8000)
+    REGISTRY.register(Checker())
+    while True:
+        # period between collection
+        time.sleep(1)
